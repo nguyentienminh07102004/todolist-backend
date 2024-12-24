@@ -38,6 +38,7 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/%s/users/login".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.POST, "/%s/users/register".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.POST, "/%s/users/login/google".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.PUT, "/%s/users/forgot-password/{email}".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.POST, "/%s/auth/tasks/".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 .requestMatchers(HttpMethod.POST, "/%s/auth/email/send-mail".formatted(apiPrefix)).permitAll());

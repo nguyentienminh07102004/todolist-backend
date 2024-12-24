@@ -9,7 +9,9 @@ import com.ptitB22DCCN539.todoList.Service.Commons.User.IUserServiceCommons;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,6 +48,15 @@ public class UserController {
         APIResponse response = APIResponse.builder()
                 .message("LOGIN SUCCESS")
                 .response(token)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PutMapping(value = "/forgot-password/{email}")
+    public ResponseEntity<APIResponse> forgotPassword(@PathVariable String email) {
+        userService.forgotPassword(email);
+        APIResponse response = APIResponse.builder()
+                .message("SUCCESS")
                 .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

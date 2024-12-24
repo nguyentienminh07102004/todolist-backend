@@ -6,11 +6,11 @@ import com.ptitB22DCCN539.todoList.Modal.Entity.JwtTokenEntity;
 import com.ptitB22DCCN539.todoList.Modal.Entity.RoleEntity;
 import com.ptitB22DCCN539.todoList.Modal.Entity.UserEntity;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.LoginRequest;
-import com.ptitB22DCCN539.todoList.Modal.Request.User.UserChangePasswordRequest;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.UserRegisterRequest;
 import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
 import com.ptitB22DCCN539.todoList.Repository.IRoleRepository;
 import com.ptitB22DCCN539.todoList.Repository.IUserRepository;
+import com.ptitB22DCCN539.todoList.Service.Email.IEmailService;
 import com.ptitB22DCCN539.todoList.Service.Token.JwtGenerateToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.stereotype.Service;
@@ -29,8 +28,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +41,7 @@ public class UserServiceCommonsImpl implements IUserServiceCommons {
     private final UserConvertor userConvertor;
     private final JwtGenerateToken jwtGenerateToken;
     private final IRoleRepository roleRepository;
+    private final IEmailService emailService;
 
     @Value(value = "${google.clientId}")
     private String googleClientId;
@@ -82,34 +84,6 @@ public class UserServiceCommonsImpl implements IUserServiceCommons {
             throw new DataInvalidException("Password and repeat password do not match!");
         }
         UserEntity user = userConvertor.registerRequestToEntity(userRegisterRequest);
-        userRepository.save(user);
-        return userConvertor.entityToResponse(user);
-    }
-
-    @Override
-    public UserEntity getUserEntityById(String email) {
-        return userRepository.findById(email)
-                .orElseThrow(() -> new DataInvalidException("Email is not found!"));
-    }
-
-    @Override
-    public UserResponse changePassword(UserChangePasswordRequest userChangePasswordRequest) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        UserEntity user = this.getUserEntityById(email);
-        if(!passwordEncoder.matches(userChangePasswordRequest.getOldPassword(), user.getPassword())) {
-            throw new DataInvalidException("Old password is invalid!");
-        }
-        if(passwordEncoder.matches(userChangePasswordRequest.getNewPassword(), user.getPassword())) {
-            throw new DataInvalidException("New password is invalid!");
-        }
-        if(!userChangePasswordRequest.getNewPassword().equals(userChangePasswordRequest.getReNewPassword())) {
-            throw new DataInvalidException("New password and repeat password do not match!");
-        }
-        for (JwtTokenEntity jwtTokenEntity : user.getJwtTokens()) {
-            jwtTokenEntity.setUser(null);
-        }
-        user.getJwtTokens().clear();
-        user.setPassword(passwordEncoder.encode(userChangePasswordRequest.getNewPassword()));
         userRepository.save(user);
         return userConvertor.entityToResponse(user);
     }
@@ -158,5 +132,19 @@ public class UserServiceCommonsImpl implements IUserServiceCommons {
             throw new DataInvalidException("Login failed!");
         }
         throw new DataInvalidException("Login failed!");
+    }
+
+    @Override
+    @Transactional
+    public void forgotPassword(String email) {
+        UserEntity user = userRepository.findById(email)
+                .orElseThrow(() -> new DataInvalidException("Email is not found!"));
+        String password = UUID.randomUUID().toString();
+        user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
+        Map<String, Object> properties = new HashMap<>();
+        properties.put("newPassword", password);
+        properties.put("name", user.getFullName() == null ? user.getEmail() : user.getFullName());
+        emailService.sendMailWithTemplate(email, "Forgot Password", "forgotPassword", properties);
     }
 }

@@ -9,7 +9,6 @@ import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
 public interface IUserServiceCommons {
     String login(LoginRequest loginRequest);
     UserResponse register(UserRegisterRequest userRegisterRequest);
-    UserEntity getUserEntityById(String email);
-    UserResponse changePassword(UserChangePasswordRequest userChangePasswordRequest);
     String loginWithGoogle(String code);
+    void forgotPassword(String email);
 }

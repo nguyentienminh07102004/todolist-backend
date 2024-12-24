@@ -10,6 +10,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -41,9 +42,9 @@ public class EmailServiceImpl implements IEmailService{
     }
 
     @Override
-    public void sendMailWithTemplate(String to, String subject, String template) {
+    public void sendMailWithTemplate(String to, String subject, String template, Map<String, Object> properties) {
         Context context = new Context();
-        context.setVariable("email", to);
+        context.setVariables(properties);
         String content = templateEngine.process(template, context);
         this.sendMailWithHtml(to, true, false, subject, content);
     }
