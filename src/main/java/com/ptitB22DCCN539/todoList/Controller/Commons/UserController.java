@@ -2,10 +2,12 @@ package com.ptitB22DCCN539.todoList.Controller.Commons;
 
 import com.ptitB22DCCN539.todoList.Modal.Request.User.LoginRequest;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.LoginWithGoogleRequest;
+import com.ptitB22DCCN539.todoList.Modal.Request.User.UserForgotPasswordRequest;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.UserRegisterRequest;
 import com.ptitB22DCCN539.todoList.Modal.Response.APIResponse;
 import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
 import com.ptitB22DCCN539.todoList.Service.Commons.User.IUserServiceCommons;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +25,10 @@ public class UserController {
     private final IUserServiceCommons userService;
 
     @PostMapping(value = "/login")
-    public ResponseEntity<APIResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<APIResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        System.out.println(request.getHeader("User-Agent"));
+        System.out.println(request.getLocalAddr());
+        System.out.println(request.getRemoteAddr());
         String token = userService.login(loginRequest);
         APIResponse response = APIResponse.builder()
                 .message("LOGIN SUCCESS")
@@ -57,6 +62,16 @@ public class UserController {
         userService.forgotPassword(email);
         APIResponse response = APIResponse.builder()
                 .message("SUCCESS")
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PutMapping(value = "/verify-code-set-password")
+    public ResponseEntity<APIResponse> verifyCode(@RequestBody UserForgotPasswordRequest userForgotPasswordRequest) {
+        UserResponse userResponse = userService.verifyCodeAndSetPassword(userForgotPasswordRequest);
+        APIResponse response = APIResponse.builder()
+                .message("CHANGE PASSWORD SUCCESS")
+                .response(userResponse)
                 .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

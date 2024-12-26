@@ -31,7 +31,7 @@ public class TaskServiceImpl implements ITaskService {
     @Override
     @Transactional(readOnly = true)
     public PagedModel<TaskResponse> getMyTasks(Integer page) {
-        if(page == null || page < 1) {
+        if (page == null || page < 1) {
             page = 1;
         }
         Pageable pageable = PageRequest.of(page - 1, 10);
