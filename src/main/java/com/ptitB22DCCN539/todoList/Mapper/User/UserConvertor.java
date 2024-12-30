@@ -1,6 +1,9 @@
 package com.ptitB22DCCN539.todoList.Mapper.User;
 
+import com.ptitB22DCCN539.todoList.Bean.ContantVariable;
+import com.ptitB22DCCN539.todoList.Bean.USER_STATUS;
 import com.ptitB22DCCN539.todoList.CustomerException.DataInvalidException;
+import com.ptitB22DCCN539.todoList.CustomerException.ExceptionVariable;
 import com.ptitB22DCCN539.todoList.Modal.Entity.RoleEntity;
 import com.ptitB22DCCN539.todoList.Modal.Entity.UserEntity;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.UserRegisterRequest;
@@ -31,16 +34,16 @@ public class UserConvertor {
         if (userRegisterRequest.getRoles() != null) {
             List<RoleEntity> roles = userRegisterRequest.getRoles().stream()
                     .map(code -> roleRepository.findById(code)
-                            .orElseThrow(() -> new DataInvalidException("Role not found!")))
+                            .orElseThrow(() -> new DataInvalidException(ExceptionVariable.ROLE_NOT_FOUND)))
                     .toList();
             user.setRoles(roles);
         } else {
-            RoleEntity roleEntity = roleRepository.findById("USER")
-                .orElseThrow(() -> new DataInvalidException("Role User not exists"));
+            RoleEntity roleEntity = roleRepository.findById(ContantVariable.ROLE_USER)
+                .orElseThrow(() -> new DataInvalidException(ExceptionVariable.ROLE_NOT_FOUND));
             user.setRoles(List.of(roleEntity));
         }
         // set status
-        user.setStatus("ACTIVE");
+        user.setStatus(USER_STATUS.ACTIVE);
         return user;
     }
 }

@@ -1,8 +1,10 @@
 package com.ptitB22DCCN539.todoList.CustomerException;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
 public class DataInvalidException extends RuntimeException {
-    public DataInvalidException() {}
-    public DataInvalidException(String message) {
-        super(message);
-    }
+    private ExceptionVariable exceptionVariable;
 }

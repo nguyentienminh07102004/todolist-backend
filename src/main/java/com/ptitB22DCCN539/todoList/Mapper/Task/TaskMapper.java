@@ -14,7 +14,8 @@ public interface TaskMapper {
             @Mapping(target = "modifiedBy", ignore = true),
             @Mapping(target = "createdDate", ignore = true),
             @Mapping(target = "createdBy", ignore = true),
-            @Mapping(target = "board", ignore = true)
+            @Mapping(target = "board", ignore = true),
+            @Mapping(target = "category", ignore = true)
     })
     TaskEntity taskRequestToTaskEntity(TaskRequest taskRequest);
 

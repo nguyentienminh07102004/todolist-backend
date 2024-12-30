@@ -1,5 +1,7 @@
 package com.ptitB22DCCN539.todoList.Modal.Request.Task;
 
+import com.ptitB22DCCN539.todoList.Bean.PRIORITY;
+import com.ptitB22DCCN539.todoList.Bean.TASK_STATUS;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,8 +19,8 @@ public class TaskRequest {
     private String id;
     private String taskName;
     private String description;
-    private String priority;
-    private String status;
+    private PRIORITY priority;
+    private TASK_STATUS status;
     private LocalDateTime dueDate;
     private String notes;
 }

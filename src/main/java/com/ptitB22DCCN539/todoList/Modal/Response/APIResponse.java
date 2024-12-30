@@ -14,6 +14,7 @@ import lombok.Setter;
 @Builder
 @JsonInclude(value = JsonInclude.Include.NON_NULL)
 public class APIResponse {
+    private Integer code;
     private String message;
     private Object response;
 }

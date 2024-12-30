@@ -1,7 +1,11 @@
 package com.ptitB22DCCN539.todoList.Modal.Entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.ptitB22DCCN539.todoList.Bean.USER_STATUS;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -13,11 +17,10 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.List;
-
 import org.hibernate.annotations.Cascade;
 import org.hibernate.annotations.CascadeType;
+
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -36,8 +39,9 @@ public class UserEntity extends BaseEntity {
     private String password;
     @Column(name = "phone")
     private String phone;
+    @Enumerated(value = EnumType.STRING)
     @Column(name = "status")
-    private String status;
+    private USER_STATUS status;
 
     @ManyToMany
     @JoinTable(name = "user_role",
@@ -47,5 +51,6 @@ public class UserEntity extends BaseEntity {
 
     @OneToMany(mappedBy = "user", orphanRemoval = true)
     @Cascade(value = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
+    @JsonManagedReference
     private List<JwtTokenEntity> jwtTokens;
 }

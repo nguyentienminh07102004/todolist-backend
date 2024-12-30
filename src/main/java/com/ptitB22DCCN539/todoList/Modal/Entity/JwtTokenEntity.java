@@ -2,6 +2,7 @@ package com.ptitB22DCCN539.todoList.Modal.Entity;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -25,12 +26,13 @@ public class JwtTokenEntity {
     @Id
     @Column(name = "id")
     private String id;
-    @Column(name = "token", columnDefinition = "LONGTEXT", nullable = false, unique = true)
+    @Column(name = "token", columnDefinition = "LONGTEXT", nullable = false)
     private String token;
     @Column(name = "expired")
     private LocalDateTime expired;
 
     @ManyToOne
     @JoinColumn(name = "email")
+    @JsonBackReference
     private UserEntity user;
 }

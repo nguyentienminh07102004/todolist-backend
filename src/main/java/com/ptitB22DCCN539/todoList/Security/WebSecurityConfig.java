@@ -1,9 +1,20 @@
 package com.ptitB22DCCN539.todoList.Security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nimbusds.jwt.SignedJWT;
+import com.ptitB22DCCN539.todoList.Bean.ContantVariable;
+import com.ptitB22DCCN539.todoList.CustomerException.DataInvalidException;
+import com.ptitB22DCCN539.todoList.CustomerException.ExceptionVariable;
+import com.ptitB22DCCN539.todoList.Modal.Response.APIResponse;
+import com.ptitB22DCCN539.todoList.Repository.IJwtTokenRepository;
+import com.ptitB22DCCN539.todoList.Service.Token.JwtToken;
+import jakarta.servlet.http.Cookie;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,6 +24,7 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.web.cors.CorsConfiguration;
@@ -25,11 +37,16 @@ import javax.crypto.spec.SecretKeySpec;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(jsr250Enabled = true)
+@RequiredArgsConstructor
 public class WebSecurityConfig {
     @Value(value = "${apiPrefix}")
     private String apiPrefix;
     @Value(value = "${signerKey}")
     private String SINGER_KEY;
+    @Value(value = "${urlFrontEndOrigin}")
+    private String urlFrontEndOrigin;
+    private final IJwtTokenRepository jwtTokenRepository;
+    private final JwtToken jwtToken;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -39,28 +56,59 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/%s/users/register".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.POST, "/%s/users/login/google".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.PUT, "/%s/users/forgot-password/{email}".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.PUT, "/%s/users/verify-code-set-password".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.POST, "/%s/users/logout".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 .requestMatchers(HttpMethod.POST, "/%s/auth/tasks/".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
-                .requestMatchers(HttpMethod.POST, "/%s/auth/email/send-mail".formatted(apiPrefix)).permitAll());
+                .requestMatchers(HttpMethod.POST, "/%s/auth/email/send-mail".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.GET, "/%s/auth/tasks/".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+        );
         http.cors(cors -> corsFilter());
         http.oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())
-                        .jwtAuthenticationConverter(jwtAuthenticationConverter())));
+                        .jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                .bearerTokenResolver(bearerTokenResolver())
+                .authenticationEntryPoint(((httpServletRequest, httpServletResponse, authException) -> {
+                    // thường là lỗi 401
+                    APIResponse response = APIResponse.builder()
+                            .message(ExceptionVariable.UNAUTHENTICATED.getMessage())
+                            .response(authException.getMessage())
+                            .build();
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    httpServletResponse.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                    httpServletResponse.setStatus(ExceptionVariable.UNAUTHENTICATED.getStatus().value());
+                    httpServletResponse.getWriter().write(objectMapper.writeValueAsString(response));
+                    httpServletResponse.getWriter().flush();
+                })));
         return http.build();
     }
 
     @Bean
     public JwtDecoder jwtDecoder() {
-        SecretKey secretKey = new SecretKeySpec(SINGER_KEY.getBytes(), "HS512");
-        return NimbusJwtDecoder.withSecretKey(secretKey)
-                .macAlgorithm(MacAlgorithm.HS512)
-                .build();
+        return token -> {
+            // check token is logout ?
+            try {
+                SignedJWT jwt = jwtToken.verifyToken(token);
+                if(!jwtTokenRepository.existsById(jwt.getJWTClaimsSet().getJWTID())) {
+                    throw new DataInvalidException(ExceptionVariable.TOKEN_INVALID);
+                }
+                SecretKey secretKey = new SecretKeySpec(SINGER_KEY.getBytes(), MacAlgorithm.HS512.getName());
+                return NimbusJwtDecoder.withSecretKey(secretKey)
+                        .macAlgorithm(MacAlgorithm.HS512)
+                        .build()
+                        .decode(token);
+            } catch (Exception exception) {
+                throw new DataInvalidException(ExceptionVariable.UNAUTHENTICATED);
+            }
+        };
     }
 
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix(ContantVariable.ROLE_PREFIX);
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
         return converter;
@@ -71,9 +119,25 @@ public class WebSecurityConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
         corsConfiguration.addAllowedMethod("*");
         corsConfiguration.addAllowedHeader("*");
-        corsConfiguration.addAllowedOrigin("http://localhost:5173");
+        corsConfiguration.addAllowedOrigin(urlFrontEndOrigin);
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
         urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
         return new CorsFilter(urlBasedCorsConfigurationSource);
+    }
+
+    @Bean
+    public BearerTokenResolver bearerTokenResolver() {
+        return request -> {
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if(cookie.getName().equals(ContantVariable.TOKEN_NAME)) {
+                        return cookie.getValue();
+                    }
+                }
+                return null;
+            }
+            return null;
+        };
     }
 }

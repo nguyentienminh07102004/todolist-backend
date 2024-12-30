@@ -1,6 +1,10 @@
-package com.ptitB22DCCN539.todoList.Service.Commons.User;
+package com.ptitB22DCCN539.todoList.Service.Public.User;
 
+import com.nimbusds.jwt.SignedJWT;
+import com.ptitB22DCCN539.todoList.Bean.ContantVariable;
+import com.ptitB22DCCN539.todoList.Bean.USER_STATUS;
 import com.ptitB22DCCN539.todoList.CustomerException.DataInvalidException;
+import com.ptitB22DCCN539.todoList.CustomerException.ExceptionVariable;
 import com.ptitB22DCCN539.todoList.Mapper.User.UserConvertor;
 import com.ptitB22DCCN539.todoList.Modal.Entity.JwtTokenEntity;
 import com.ptitB22DCCN539.todoList.Modal.Entity.RoleEntity;
@@ -11,11 +15,13 @@ import com.ptitB22DCCN539.todoList.Modal.Request.User.UserRegisterRequest;
 import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
 import com.ptitB22DCCN539.todoList.Redis.User.CodeVerifyRedis;
 import com.ptitB22DCCN539.todoList.Redis.User.Repository.IVerifyCodeRedisRepository;
-import com.ptitB22DCCN539.todoList.Redis.User.RoleRedis;
+import com.ptitB22DCCN539.todoList.Repository.IJwtTokenRepository;
 import com.ptitB22DCCN539.todoList.Repository.IRoleRepository;
 import com.ptitB22DCCN539.todoList.Repository.IUserRepository;
 import com.ptitB22DCCN539.todoList.Service.Email.IEmailService;
-import com.ptitB22DCCN539.todoList.Service.Token.JwtGenerateToken;
+import com.ptitB22DCCN539.todoList.Service.Token.JwtToken;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +34,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -43,59 +50,64 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class UserServiceCommonsImpl implements IUserServiceCommons {
+public class UserServicePublicImpl implements IUserServicePublic {
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserConvertor userConvertor;
-    private final JwtGenerateToken jwtGenerateToken;
+    private final JwtToken jwtGenerateToken;
     private final IRoleRepository roleRepository;
     private final IEmailService emailService;
     private final IVerifyCodeRedisRepository verifyCodeRedisRepository;
+    private final IJwtTokenRepository jwtTokenRepository;
 
     @Value(value = "${google.clientId}")
     private String googleClientId;
     @Value(value = "${google.clientSecret}")
     private String googleClientSecret;
-    @Value(value = "${redirect_uri}")
-    private String redirectUri;
+    @Value(value = "${google_redirect_uri}")
+    private String googleRedirectUri;
+    @Value(value = "${timeToLiveForgetPasswordCode}")
+    private Long timeToLiveForgetPasswordCode;
+    @Value(value = "${maxDeviceLoginToAccount}")
+    private Integer maxDeviceLoginToAccount;
+    @Value(value = "${googleGetAccessTokenUrl}")
+    private String getAccessTokenUrl;
+    @Value(value = "${googleGetUserInfoUrl}")
+    private String getUserInfoUrl;
 
 
     @Override
-    public String login(LoginRequest loginRequest) {
+    @Transactional
+    public JwtTokenEntity login(LoginRequest loginRequest) {
         UserEntity user = userRepository.findById(loginRequest.getEmail())
-                .orElseThrow(() -> new DataInvalidException("Email or password is invalid!"));
+                .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_OR_PASSWORD_NOT_MATCH));
         if (loginRequest.getIsSocial() == null || !loginRequest.getIsSocial()) {
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                throw new DataInvalidException("Email or password is invalid!");
+                throw new DataInvalidException(ExceptionVariable.EMAIL_OR_PASSWORD_NOT_MATCH);
             }
         }
-        if (user.getStatus().equalsIgnoreCase("INACTIVE")) {
-            throw new DataInvalidException("Account is invalid!");
+        if (user.getStatus().equals(USER_STATUS.INACTIVE)) {
+            throw new DataInvalidException(ExceptionVariable.ACCOUNT_INACTIVE);
         }
-        // kiểm tra xem user đăng nhập bao nhiêu máy rồi
-        // tối đa 3 máy(3 token)
+        // check number of device account login
         List<JwtTokenEntity> jwtTokenList = user.getJwtTokens();
-        if (jwtTokenList.size() >= 3) {
-            // không cho đăng nhập nữa
-            throw new DataInvalidException("Exceed the number of machines that can log in");
+        if (jwtTokenList.size() >= maxDeviceLoginToAccount) {
+            throw new DataInvalidException(ExceptionVariable.ACCOUNT_LOGIN_MAX_DEVICE);
         }
         JwtTokenEntity jwtTokenEntity = jwtGenerateToken.generateToken(user);
         jwtTokenList.add(jwtTokenEntity);
         userRepository.save(user);
-        List<RoleRedis> roleRedis = user.getRoles().stream()
-                .map(role -> new RoleRedis(role.getCode(), role.getName(), role.getDescription()))
-                .toList();
-        return jwtTokenEntity.getToken();
+        return jwtTokenEntity;
     }
 
     @Override
     @Transactional
     public UserResponse register(UserRegisterRequest userRegisterRequest) {
         if (userRepository.existsById(userRegisterRequest.getEmail())) {
-            throw new DataInvalidException("Email is already in use!");
+            throw new DataInvalidException(ExceptionVariable.EMAIL_ALREADY_EXISTS);
         }
         if (!userRegisterRequest.getPassword().equals(userRegisterRequest.getRePassword())) {
-            throw new DataInvalidException("Password and repeat password do not match!");
+            throw new DataInvalidException(ExceptionVariable.PASSWORD_AND_REPEAT_PASSWORD_NOT_MATCH);
         }
         UserEntity user = userConvertor.registerRequestToEntity(userRegisterRequest);
         userRepository.save(user);
@@ -104,48 +116,46 @@ public class UserServiceCommonsImpl implements IUserServiceCommons {
 
     @Override
     @Transactional
-    public String loginWithGoogle(String code) {
+    @SuppressWarnings(value = "rawtypes")
+    public JwtTokenEntity loginWithGoogle(String code) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            // set các tham số cần thiết cho quá trình lấy accessToken
             MultiValueMap<String, String> values = new LinkedMultiValueMap<>();
-            values.add("code", code);
-            values.add("client_id", googleClientId);
-            values.add("client_secret", googleClientSecret);
-            values.add("redirect_uri", redirectUri);
-            String getAccessTokenUrl = "https://www.googleapis.com/oauth2/v4/token";
-            String getUserInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
-            values.add("grant_type", AuthorizationGrantType.AUTHORIZATION_CODE.getValue()); // xác định đúng authorization flow
+            values.add(OAuth2ParameterNames.CODE, code);
+            values.add(OAuth2ParameterNames.CLIENT_ID, googleClientId);
+            values.add(OAuth2ParameterNames.CLIENT_SECRET, googleClientSecret);
+            values.add(OAuth2ParameterNames.REDIRECT_URI, googleRedirectUri);
+            values.add(OAuth2ParameterNames.GRANT_TYPE, AuthorizationGrantType.AUTHORIZATION_CODE.getValue()); // authorization flow
             HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(values, headers);
             RestTemplate restTemplate = new RestTemplate();
             ResponseEntity<Map> responseAccessToken = restTemplate.exchange(getAccessTokenUrl, HttpMethod.POST, entity, Map.class);
             if (responseAccessToken.getStatusCode().equals(HttpStatus.OK)) {
                 HttpHeaders httpHeaders = new HttpHeaders();
-                httpHeaders.setBearerAuth(Objects.requireNonNull(responseAccessToken.getBody()).get("access_token").toString());
+                httpHeaders.setBearerAuth(Objects.requireNonNull(responseAccessToken.getBody()).get(OAuth2ParameterNames.ACCESS_TOKEN).toString());
                 HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(httpHeaders);
                 ResponseEntity<Map> responseUserInfo = restTemplate.exchange(getUserInfoUrl, HttpMethod.POST, httpEntity, Map.class);
                 String email = Objects.requireNonNull(responseUserInfo.getBody()).get("email").toString();
                 if (userRepository.existsById(email)) {
                     return this.login(new LoginRequest(email, null, true));
                 }
-                RoleEntity roleUser = roleRepository.findById("USER")
-                        .orElseThrow(() -> new DataInvalidException("Role is not found!"));
+                RoleEntity roleUser = roleRepository.findById(ContantVariable.ROLE_USER)
+                        .orElseThrow(() -> new DataInvalidException(ExceptionVariable.ROLE_NOT_FOUND));
                 UserEntity user = UserEntity.builder()
                         .email(email)
                         .fullName(responseUserInfo.getBody().get("name").toString())
                         .roles(List.of(roleUser))
-                        .status("ACTIVE")
+                        .status(USER_STATUS.ACTIVE)
                         .build();
                 JwtTokenEntity jwtTokenEntity = jwtGenerateToken.generateToken(user);
                 user.setJwtTokens(List.of(jwtTokenEntity));
                 userRepository.save(user);
-                return jwtTokenEntity.getToken();
+                return jwtTokenEntity;
             }
         } catch (Exception exception) {
-            throw new DataInvalidException("Login failed!");
+            throw new DataInvalidException(ExceptionVariable.LOGIN_FAILED);
         }
-        throw new DataInvalidException("Login failed!");
+        throw new DataInvalidException(ExceptionVariable.LOGIN_FAILED);
     }
 
     @Override
@@ -153,14 +163,14 @@ public class UserServiceCommonsImpl implements IUserServiceCommons {
     public void forgotPassword(String email) {
         try {
             UserEntity user = userRepository.findById(email)
-                    .orElseThrow(() -> new DataInvalidException("Email is not found!"));
+                    .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND));
             String code = UUID.randomUUID().toString();
             Map<String, Object> properties = new HashMap<>();
-            properties.put("codeVerify", code);
+            properties.put(ContantVariable.CODE_VERIFIED, code);
             CodeVerifyRedis codeVerifyRedis = CodeVerifyRedis.builder()
                     .code(code)
                     .email(email)
-                    .timeToLive(180L)
+                    .timeToLive(timeToLiveForgetPasswordCode)
                     .build();
             verifyCodeRedisRepository.save(codeVerifyRedis);
             properties.put("name", user.getFullName() == null ? user.getEmail() : user.getFullName());
@@ -175,21 +185,42 @@ public class UserServiceCommonsImpl implements IUserServiceCommons {
     public UserResponse verifyCodeAndSetPassword(UserForgotPasswordRequest userForgotPasswordRequest) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         CodeVerifyRedis codeVerifyRedis = verifyCodeRedisRepository.findById(userForgotPasswordRequest.getCode())
-                .orElseThrow(() -> new DataInvalidException("Code is not found!"));
+                .orElseThrow(() -> new DataInvalidException(ExceptionVariable.CODE_INVALID));
         // Đảm bảo email trùng với email của code verify lưu ở redis
-        if(!codeVerifyRedis.getEmail().equals(email)) {
-            throw new DataInvalidException("Email does not match!");
+        if (!codeVerifyRedis.getEmail().equals(email)) {
+            throw new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND);
         }
         UserEntity user = userRepository.findById(email)
-                .orElseThrow(() -> new DataInvalidException("Email is not found!"));
-        if(!userForgotPasswordRequest.getPassword().equals(userForgotPasswordRequest.getRePassword())) {
-            throw new DataInvalidException("Password does not match!");
+                .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND));
+        if (!userForgotPasswordRequest.getPassword().equals(userForgotPasswordRequest.getRePassword())) {
+            throw new DataInvalidException(ExceptionVariable.PASSWORD_AND_REPEAT_PASSWORD_NOT_MATCH);
         }
-        if(passwordEncoder.matches(userForgotPasswordRequest.getPassword(), user.getPassword())) {
-            throw new DataInvalidException("New password and old password do not match!");
+        if (passwordEncoder.matches(userForgotPasswordRequest.getPassword(), user.getPassword())) {
+            throw new DataInvalidException(ExceptionVariable.OLD_PASSWORD_NEW_PASSWORD_MATCH);
         }
         user.setPassword(passwordEncoder.encode(userForgotPasswordRequest.getPassword()));
+        // logout after change password
+        user.getJwtTokens().forEach(token -> token.setUser(null));
+        user.getJwtTokens().clear();
         userRepository.save(user);
         return userConvertor.entityToResponse(user);
+    }
+
+    @Override
+    @Transactional
+    public void logout(HttpServletRequest httpServletRequest) {
+        try {
+            Cookie[] cookies = httpServletRequest.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if (cookie.getName().equals(ContantVariable.TOKEN_NAME)) {
+                        SignedJWT signedJWT = jwtGenerateToken.verifyToken(cookie.getValue());
+                        jwtTokenRepository.deleteById(signedJWT.getJWTClaimsSet().getJWTID());
+                    }
+                }
+            }
+        } catch (Exception exception) {
+            throw new DataInvalidException(ExceptionVariable.TOKEN_INVALID);
+        }
     }
 }

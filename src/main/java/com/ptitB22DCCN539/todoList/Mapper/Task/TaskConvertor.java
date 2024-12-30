@@ -1,6 +1,7 @@
 package com.ptitB22DCCN539.todoList.Mapper.Task;
 
 import com.ptitB22DCCN539.todoList.CustomerException.DataInvalidException;
+import com.ptitB22DCCN539.todoList.CustomerException.ExceptionVariable;
 import com.ptitB22DCCN539.todoList.Mapper.User.UserConvertor;
 import com.ptitB22DCCN539.todoList.Modal.Entity.TaskEntity;
 import com.ptitB22DCCN539.todoList.Modal.Entity.UserEntity;
@@ -24,7 +25,7 @@ public class TaskConvertor {
     public TaskResponse taskEntityToTaskResponse(TaskEntity taskEntity) {
         TaskResponse taskResponse = taskMapper.taskEntityToTaskResponse(taskEntity);
         UserEntity user = userRepository.findById(taskEntity.getCreatedBy())
-                .orElseThrow(() -> new DataInvalidException("Email not found!"));
+                .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND));
         taskResponse.setUser(userConvertor.entityToResponse(user));
         return taskResponse;
     }

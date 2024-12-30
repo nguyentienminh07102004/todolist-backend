@@ -1,6 +1,7 @@
 package com.ptitB22DCCN539.todoList.Service.Authentication.User;
 
 import com.ptitB22DCCN539.todoList.CustomerException.DataInvalidException;
+import com.ptitB22DCCN539.todoList.CustomerException.ExceptionVariable;
 import com.ptitB22DCCN539.todoList.Mapper.User.UserConvertor;
 import com.ptitB22DCCN539.todoList.Modal.Entity.JwtTokenEntity;
 import com.ptitB22DCCN539.todoList.Modal.Entity.UserEntity;
@@ -26,13 +27,13 @@ public class UserServiceAuthentication implements IUserServiceAuthentication {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         UserEntity user = this.getUserEntityById(email);
         if(!passwordEncoder.matches(userChangePasswordRequest.getOldPassword(), user.getPassword())) {
-            throw new DataInvalidException("Old password is invalid!");
+            throw new DataInvalidException(ExceptionVariable.OLD_PASSWORD_NOT_MATCH);
         }
         if(passwordEncoder.matches(userChangePasswordRequest.getNewPassword(), user.getPassword())) {
-            throw new DataInvalidException("New password is invalid!");
+            throw new DataInvalidException(ExceptionVariable.OLD_PASSWORD_NEW_PASSWORD_MATCH);
         }
         if(!userChangePasswordRequest.getNewPassword().equals(userChangePasswordRequest.getReNewPassword())) {
-            throw new DataInvalidException("New password and repeat password do not match!");
+            throw new DataInvalidException(ExceptionVariable.PASSWORD_AND_REPEAT_PASSWORD_NOT_MATCH);
         }
         for (JwtTokenEntity jwtTokenEntity : user.getJwtTokens()) {
             jwtTokenEntity.setUser(null);
@@ -47,6 +48,6 @@ public class UserServiceAuthentication implements IUserServiceAuthentication {
     @Transactional(readOnly = true)
     public UserEntity getUserEntityById(String email) {
         return userRepository.findById(email)
-                .orElseThrow(() -> new DataInvalidException("User not found!"));
+                .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND));
     }
 }
