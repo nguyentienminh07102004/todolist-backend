@@ -36,6 +36,7 @@ public class ExceptionHandlerCustomer {
     public ResponseEntity<APIResponse> MethodArgumentNotValidExceptionHandler(MethodArgumentNotValidException exception) {
         String message = Objects.requireNonNull(exception.getBindingResult().getFieldError()).getDefaultMessage();
         APIResponse response = APIResponse.builder()
+                .code(ExceptionVariable.DATA_INVALID.getCode())
                 .message(message)
                 .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);

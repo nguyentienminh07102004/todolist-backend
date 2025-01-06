@@ -13,8 +13,8 @@ import com.ptitB22DCCN539.todoList.Modal.Request.User.LoginRequest;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.UserForgotPasswordRequest;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.UserRegisterRequest;
 import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
-import com.ptitB22DCCN539.todoList.Redis.User.CodeVerifyRedis;
-import com.ptitB22DCCN539.todoList.Redis.User.Repository.IVerifyCodeRedisRepository;
+import com.ptitB22DCCN539.todoList.Redis.CodeVerify.CodeVerifyRedis;
+import com.ptitB22DCCN539.todoList.Redis.CodeVerify.ICodeVerifyService;
 import com.ptitB22DCCN539.todoList.Repository.IJwtTokenRepository;
 import com.ptitB22DCCN539.todoList.Repository.IRoleRepository;
 import com.ptitB22DCCN539.todoList.Repository.IUserRepository;
@@ -48,17 +48,17 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
+@RequiredArgsConstructor
 public class UserServicePublicImpl implements IUserServicePublic {
     private final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserConvertor userConvertor;
-    private final JwtToken jwtGenerateToken;
+    private final JwtToken jwtToken;
     private final IRoleRepository roleRepository;
     private final IEmailService emailService;
-    private final IVerifyCodeRedisRepository verifyCodeRedisRepository;
     private final IJwtTokenRepository jwtTokenRepository;
+    private final ICodeVerifyService codeVerifyService;
 
     @Value(value = "${google.clientId}")
     private String googleClientId;
@@ -94,7 +94,7 @@ public class UserServicePublicImpl implements IUserServicePublic {
         if (jwtTokenList.size() >= maxDeviceLoginToAccount) {
             throw new DataInvalidException(ExceptionVariable.ACCOUNT_LOGIN_MAX_DEVICE);
         }
-        JwtTokenEntity jwtTokenEntity = jwtGenerateToken.generateToken(user);
+        JwtTokenEntity jwtTokenEntity = jwtToken.generateToken(user);
         jwtTokenList.add(jwtTokenEntity);
         userRepository.save(user);
         return jwtTokenEntity;
@@ -147,7 +147,7 @@ public class UserServicePublicImpl implements IUserServicePublic {
                         .roles(List.of(roleUser))
                         .status(USER_STATUS.ACTIVE)
                         .build();
-                JwtTokenEntity jwtTokenEntity = jwtGenerateToken.generateToken(user);
+                JwtTokenEntity jwtTokenEntity = jwtToken.generateToken(user);
                 user.setJwtTokens(List.of(jwtTokenEntity));
                 userRepository.save(user);
                 return jwtTokenEntity;
@@ -172,7 +172,7 @@ public class UserServicePublicImpl implements IUserServicePublic {
                     .email(email)
                     .timeToLive(timeToLiveForgetPasswordCode)
                     .build();
-            verifyCodeRedisRepository.save(codeVerifyRedis);
+            codeVerifyService.save(codeVerifyRedis);
             properties.put("name", user.getFullName() == null ? user.getEmail() : user.getFullName());
             emailService.sendMailWithTemplate(email, "Forgot Password", "forgotPassword", properties);
         } catch (Exception exception) {
@@ -184,7 +184,7 @@ public class UserServicePublicImpl implements IUserServicePublic {
     @Transactional
     public UserResponse verifyCodeAndSetPassword(UserForgotPasswordRequest userForgotPasswordRequest) {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        CodeVerifyRedis codeVerifyRedis = verifyCodeRedisRepository.findById(userForgotPasswordRequest.getCode())
+        CodeVerifyRedis codeVerifyRedis = codeVerifyService.findByCode(userForgotPasswordRequest.getCode())
                 .orElseThrow(() -> new DataInvalidException(ExceptionVariable.CODE_INVALID));
         // Đảm bảo email trùng với email của code verify lưu ở redis
         if (!codeVerifyRedis.getEmail().equals(email)) {
@@ -214,7 +214,7 @@ public class UserServicePublicImpl implements IUserServicePublic {
             if (cookies != null) {
                 for (Cookie cookie : cookies) {
                     if (cookie.getName().equals(ContantVariable.TOKEN_NAME)) {
-                        SignedJWT signedJWT = jwtGenerateToken.verifyToken(cookie.getValue());
+                        SignedJWT signedJWT = jwtToken.verifyToken(cookie.getValue());
                         jwtTokenRepository.deleteById(signedJWT.getJWTClaimsSet().getJWTID());
                     }
                 }

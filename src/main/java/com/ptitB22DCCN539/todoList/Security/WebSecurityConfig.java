@@ -9,7 +9,7 @@ import com.ptitB22DCCN539.todoList.Modal.Response.APIResponse;
 import com.ptitB22DCCN539.todoList.Repository.IJwtTokenRepository;
 import com.ptitB22DCCN539.todoList.Service.Token.JwtToken;
 import jakarta.servlet.http.Cookie;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -37,7 +37,6 @@ import javax.crypto.spec.SecretKeySpec;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(jsr250Enabled = true)
-@RequiredArgsConstructor
 public class WebSecurityConfig {
     @Value(value = "${apiPrefix}")
     private String apiPrefix;
@@ -45,8 +44,15 @@ public class WebSecurityConfig {
     private String SINGER_KEY;
     @Value(value = "${urlFrontEndOrigin}")
     private String urlFrontEndOrigin;
+
     private final IJwtTokenRepository jwtTokenRepository;
     private final JwtToken jwtToken;
+
+    @Autowired
+    public WebSecurityConfig(IJwtTokenRepository jwtTokenRepository, JwtToken jwtToken) {
+        this.jwtTokenRepository = jwtTokenRepository;
+        this.jwtToken = jwtToken;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -57,12 +63,29 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/%s/users/login/google".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.PUT, "/%s/users/forgot-password/{email}".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.PUT, "/%s/users/verify-code-set-password".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.POST, "/upload/").permitAll()
                 .requestMatchers(HttpMethod.POST, "/%s/users/logout".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+
+                // tasks
                 .requestMatchers(HttpMethod.POST, "/%s/auth/tasks/".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 .requestMatchers(HttpMethod.POST, "/%s/auth/email/send-mail".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.GET, "/%s/auth/tasks/".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+                .requestMatchers(HttpMethod.GET, "/%s/auth/tasks/{id}".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.GET, "/%s/auth/tasks/my-task/".formatted(apiPrefix)).permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/%s/auth/tasks/my-tasks/{ids}".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+                .requestMatchers(HttpMethod.GET, "/%s/auth/tasks/deleted/all".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+                .requestMatchers(HttpMethod.PUT, "/%s/auth/tasks/restore/{ids}".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+                //fakes
+                .requestMatchers(HttpMethod.POST, "/fakes/**").permitAll()
+
+                // category
+                .requestMatchers("/%s/auth/categories/**")
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
         );
         http.cors(cors -> corsFilter());

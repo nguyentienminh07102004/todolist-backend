@@ -25,6 +25,8 @@ public enum ExceptionVariable {
     DATA_INVALID(400, "Data is invalid!", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(400, "Email is invalid!", HttpStatus.BAD_REQUEST),
     PASSWORD_INVALID(400, "Password is invalid!", HttpStatus.BAD_REQUEST),
+    CATEGORY_NOT_FOUND(400, "Category not found!", HttpStatus.BAD_REQUEST),
+    BOARD_NOT_FOUND(400, "Board not found!", HttpStatus.BAD_REQUEST),
     ;
 
     private final Integer code;

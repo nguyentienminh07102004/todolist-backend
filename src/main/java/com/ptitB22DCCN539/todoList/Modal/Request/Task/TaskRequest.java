@@ -21,6 +21,7 @@ public class TaskRequest {
     private String description;
     private PRIORITY priority;
     private TASK_STATUS status;
+    private String category;
     private LocalDateTime dueDate;
     private String notes;
 }

@@ -1,5 +1,6 @@
 package com.ptitB22DCCN539.todoList.Modal.Entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -29,5 +30,6 @@ public class BoardEntity extends BaseEntity {
     private String description;
     @OneToMany(mappedBy = "board", orphanRemoval = true)
     @Cascade(value = { CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE })
+    @JsonManagedReference
     private List<TaskEntity> tasks;
 }

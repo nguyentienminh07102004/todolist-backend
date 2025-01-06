@@ -8,18 +8,26 @@ import com.ptitB22DCCN539.todoList.Modal.Entity.UserEntity;
 import com.ptitB22DCCN539.todoList.Modal.Request.User.UserChangePasswordRequest;
 import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
 import com.ptitB22DCCN539.todoList.Repository.IUserRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class UserServiceAuthentication implements IUserServiceAuthentication {
     private final IUserRepository userRepository;
     private final UserConvertor userConvertor;
     private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    public UserServiceAuthentication(IUserRepository userRepository,
+                                     UserConvertor userConvertor,
+                                     PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.userConvertor = userConvertor;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @Override
     @Transactional

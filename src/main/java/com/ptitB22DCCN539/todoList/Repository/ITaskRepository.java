@@ -13,4 +13,7 @@ import java.util.List;
 public interface ITaskRepository extends JpaRepository<TaskEntity, String>, JpaSpecificationExecutor<TaskEntity> {
     Page<TaskEntity> findByCreatedBy(String createdBy, Pageable pageable);
     List<TaskEntity> findByCreatedBy(String createdBy);
+    boolean existsByIdAndCreatedBy(String id, String createdBy);
+    boolean existsByIdInAndCreatedBy(List<String> ids, String createdBy);
+    void deleteAllByIdIn(List<String> ids);
 }

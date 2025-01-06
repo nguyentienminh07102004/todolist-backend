@@ -5,87 +5,82 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 @Service
-public class BaseRedisServiceImpl implements BaseRedisService {
-    private final RedisTemplate<String, Object> redisTemplate;
-    private final HashOperations<String, String, Object> hashOperations;
+public class BaseRedisServiceImpl<K, F, V> implements BaseRedisService<K, F, V> {
+    private final RedisTemplate<K, V> redisTemplate;
+    private final HashOperations<K, F, V> hashOperations;
 
-    public BaseRedisServiceImpl(RedisTemplate<String, Object> redisTemplate) {
+    public BaseRedisServiceImpl(RedisTemplate<K, V> redisTemplate) {
         this.redisTemplate = redisTemplate;
         this.hashOperations = redisTemplate.opsForHash();
     }
 
     @Override
-    public void set(String key, String value) {
+    public void set(K key, V value) {
         redisTemplate.opsForValue().set(key, value);
     }
 
     @Override
-    public void setTimeToLive(String key, Long timeToLive) {
-        redisTemplate.expire(key, Duration.of(timeToLive, ChronoUnit.SECONDS));
+    public void setTimeToLive(K key, Long timeToLive) {
+        redisTemplate.expire(key, Duration.ofSeconds(timeToLive));
     }
 
     @Override
-    public void hashSet(String key, String field, Object value) {
+    public void hashSet(K key, F field, V value) {
         hashOperations.put(key, field, value);
     }
 
     @Override
-    public boolean hasExists(String key, String field) {
+    public boolean hasExists(K key, F field) {
         return hashOperations.hasKey(key, field);
     }
 
     @Override
-    public Object get(String key) {
+    public V get(K key) {
         return redisTemplate.opsForValue().get(key);
     }
 
     @Override
-    public Map<String, Object> getField(String key) {
+    public Map<F, V> getField(K key) {
         return hashOperations.entries(key);
     }
 
     @Override
-    public Object hashGet(String key, String field) {
+    public V hashGet(K key, F field) {
         return hashOperations.get(key, field);
     }
 
     @Override
-    public List<Object> hashGetByFieldPrefix(String key, String fieldPrefix) {
-        List<Object> objects = new ArrayList<>();
-        Map<String, Object> fields = hashOperations.entries(key);
-        for (Map.Entry<String, Object> entry : fields.entrySet()) {
-            if (entry.getKey().startsWith(fieldPrefix)) {
-                objects.add(entry.getValue());
-            }
-        }
-        return objects;
+    public Set<F> getFieldPrefix(K key) {
+        return hashOperations.entries(key).keySet();
     }
 
     @Override
-    public Set<String> getFieldPrefix(String key) {
-        Map<String, Object> fields = hashOperations.entries(key);
-        return fields.keySet();
-    }
-
-    @Override
-    public void delete(String key) {
+    public void delete(K key) {
         redisTemplate.delete(key);
     }
 
     @Override
-    public void delete(String key, String field) {
+    public void delete(K key, F field) {
         hashOperations.delete(key, field);
     }
 
     @Override
-    public void delete(String key, List<String> fields) {
-        fields.forEach(field -> hashOperations.delete(key, field));
+    public void deleteAll(List<K> keys) {
+        redisTemplate.delete(keys);
+    }
+
+    @Override
+    public void delete(K key, List<F> fields) {
+        hashOperations.delete(key, fields);
+    }
+
+    @Override
+    public Set<K> getKeysByPrefix(K fieldPrefix) {
+        return redisTemplate.keys(fieldPrefix);
     }
 }

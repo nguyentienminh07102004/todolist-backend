@@ -1,5 +1,7 @@
 package com.ptitB22DCCN539.todoList.Modal.Entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.ptitB22DCCN539.todoList.Bean.PRIORITY;
 import com.ptitB22DCCN539.todoList.Bean.TASK_STATUS;
 import jakarta.persistence.Column;
@@ -15,13 +17,14 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tasks")
 @Getter
 @Setter
-public class TaskEntity extends BaseEntity {
+public class TaskEntity extends BaseEntity implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")
@@ -43,9 +46,11 @@ public class TaskEntity extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "board_id")
+    @JsonBackReference
     private BoardEntity board;
 
     @ManyToOne
     @JoinColumn(name = "category_id")
+    @JsonManagedReference
     private CategoryEntity category;
 }
