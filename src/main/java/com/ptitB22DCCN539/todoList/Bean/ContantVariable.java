@@ -3,7 +3,7 @@ package com.ptitB22DCCN539.todoList.Bean;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 public class ContantVariable {
-    public static String TOKEN_NAME = "token";
+    public static String TOKEN_NAME = "_vercel_jwt";
     public static String CODE_VERIFIED = "codeVerify";
     public static String ROLE_USER = "USER";
     public static String ROLE_PREFIX = "ROLE_";
