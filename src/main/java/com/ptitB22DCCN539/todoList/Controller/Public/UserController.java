@@ -43,7 +43,7 @@ public class UserController {
                 .httpOnly(true)
                 .path("/")
                 .secure(true)
-                .domain("todolist-frontend-iota.vercel.app")
+                .domain("todolist-backend-production-c148.up.railway.app")
                 .maxAge(Duration.between(LocalDateTime.now(), token.getExpired()))
                 .build();
         APIResponse response = APIResponse.builder()
