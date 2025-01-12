@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -34,6 +35,8 @@ import java.time.LocalDateTime;
 @Slf4j
 public class UserController {
     private final IUserServicePublic userService;
+    @Value(value = "${domainBackend}")
+    private String domainBackend;
 
     @PostMapping(value = "/login")
     public ResponseEntity<APIResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
@@ -43,7 +46,7 @@ public class UserController {
                 .httpOnly(true)
                 .path("/")
                 .secure(true)
-                .domain("todolist-backend-production-c148.up.railway.app")
+                .domain(domainBackend)
                 .maxAge(Duration.between(LocalDateTime.now(), token.getExpired()))
                 .build();
         APIResponse response = APIResponse.builder()
@@ -73,7 +76,7 @@ public class UserController {
         ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, token.getToken())
                 .httpOnly(true)
                 .maxAge(Duration.between(LocalDateTime.now(), token.getExpired()))
-                .domain("todolist-frontend-iota.vercel.app")
+                .domain(domainBackend)
                 .secure(true)
                 .path("/")
                 .build();
@@ -104,7 +107,7 @@ public class UserController {
                 .httpOnly(true)
                 .secure(true)
                 .path("/")
-                .domain("todolist-frontend-iota.vercel.app")
+                .domain(domainBackend)
                 .maxAge(Duration.ZERO)
                 .build();
         APIResponse response = APIResponse.builder()
@@ -126,7 +129,7 @@ public class UserController {
                 .httpOnly(true)
                 .path("/")
                 .secure(true)
-                .domain("todolist-frontend-iota.vercel.app")
+                .domain(domainBackend)
                 .build();
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())

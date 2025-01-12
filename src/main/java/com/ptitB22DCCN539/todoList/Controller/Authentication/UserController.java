@@ -9,6 +9,7 @@ import com.ptitB22DCCN539.todoList.Modal.Response.UserResponse;
 import com.ptitB22DCCN539.todoList.Service.Authentication.User.IUserServiceAuthentication;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -25,6 +26,8 @@ import java.time.Duration;
 @RequestMapping(value = "/${apiPrefix}/auth/users")
 public class UserController {
     private final IUserServiceAuthentication userService;
+    @Value(value = "${domainBackend}")
+    private String domainBackend;
 
     @Autowired
     public UserController(IUserServiceAuthentication userService) {
@@ -47,7 +50,7 @@ public class UserController {
         UserResponse userResponse = userService.changePassword(userChangePasswordRequest);
         ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, "")
                 .maxAge(Duration.ZERO)
-                .domain("todolist-frontend-iota.vercel.app")
+                .domain(domainBackend)
                 .httpOnly(true)
                 .path("/")
                 .secure(true)
