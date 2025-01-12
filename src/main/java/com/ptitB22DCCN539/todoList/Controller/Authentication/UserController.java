@@ -47,6 +47,7 @@ public class UserController {
         UserResponse userResponse = userService.changePassword(userChangePasswordRequest);
         ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, "")
                 .maxAge(Duration.ZERO)
+                .domain("todolist-frontend-iota.vercel.app")
                 .httpOnly(true)
                 .path("/")
                 .build();

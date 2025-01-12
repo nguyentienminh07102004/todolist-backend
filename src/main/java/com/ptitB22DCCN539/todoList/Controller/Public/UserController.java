@@ -42,6 +42,7 @@ public class UserController {
         ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, token.getToken())
                 .httpOnly(true)
                 .path("/")
+                .domain("todolist-frontend-iota.vercel.app")
                 .maxAge(Duration.between(LocalDateTime.now(), token.getExpired()))
                 .build();
         APIResponse response = APIResponse.builder()
@@ -71,6 +72,7 @@ public class UserController {
         ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, token.getToken())
                 .httpOnly(true)
                 .maxAge(Duration.between(LocalDateTime.now(), token.getExpired()))
+                .domain("todolist-frontend-iota.vercel.app")
                 .path("/")
                 .build();
         APIResponse response = APIResponse.builder()
@@ -99,6 +101,7 @@ public class UserController {
         ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, "")
                 .httpOnly(true)
                 .path("/")
+                .domain("todolist-frontend-iota.vercel.app")
                 .maxAge(Duration.ZERO)
                 .build();
         APIResponse response = APIResponse.builder()
@@ -119,6 +122,7 @@ public class UserController {
                 .maxAge(Duration.ZERO)
                 .httpOnly(true)
                 .path("/")
+                .domain("todolist-frontend-iota.vercel.app")
                 .build();
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())
