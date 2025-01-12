@@ -50,6 +50,7 @@ public class UserController {
                 .domain("todolist-frontend-iota.vercel.app")
                 .httpOnly(true)
                 .path("/")
+                .secure(true)
                 .build();
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())
