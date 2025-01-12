@@ -18,4 +18,6 @@ public interface BaseRedisService<K, F, V> {
     void deleteAll(List<K> keys);
     void delete(K key, List<F> fields);
     Set<K> getKeysByPrefix(K fieldPrefix);
+
+    Long getTimeToLive(K key);
 }

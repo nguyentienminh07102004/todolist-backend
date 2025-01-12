@@ -6,6 +6,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -35,6 +37,10 @@ public class CategoryEntity implements Serializable {
     @OneToMany(mappedBy = "category")
     @JsonBackReference
     private List<TaskEntity> tasks;
+
+    @ManyToOne
+    @JoinColumn(name = "user_email")
+    private UserEntity user;
 
     public CategoryEntity(String id, String name) {
         this.id = id;

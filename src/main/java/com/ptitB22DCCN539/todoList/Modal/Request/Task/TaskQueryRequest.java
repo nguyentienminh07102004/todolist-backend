@@ -1,7 +1,7 @@
 package com.ptitB22DCCN539.todoList.Modal.Request.Task;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import com.ptitB22DCCN539.todoList.Bean.PRIORITY;
+import com.ptitB22DCCN539.todoList.Bean.TASK_STATUS;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -13,15 +13,18 @@ import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 @Builder
 public class TaskQueryRequest {
-    @NotNull
-    @NotBlank
     private String taskName;
-    private String priority;
-    private String status;
-    private LocalDateTime dueDate;
+    private PRIORITY priority;
+    private TASK_STATUS status;
+    private LocalDateTime dueDateFrom;
+    private LocalDateTime dueDateTo;
     private List<String> categories;
+    @Builder.Default
+    private Integer page = 1;
+    @Builder.Default
+    private Integer pageSize = 10;
 }

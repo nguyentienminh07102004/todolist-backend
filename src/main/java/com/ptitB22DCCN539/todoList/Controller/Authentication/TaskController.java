@@ -42,9 +42,20 @@ public class TaskController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping(value = "/")
+    @PutMapping(value = "/")
+    public ResponseEntity<APIResponse> updateTask(@Valid @RequestBody TaskRequest taskRequest) {
+        TaskResponse taskResponse = taskService.saveTask(taskRequest);
+        APIResponse response = APIResponse.builder()
+                .code(HttpStatus.OK.value())
+                .message(SuccessVariable.UPDATE_SUCCESS)
+                .response(taskResponse)
+                .build();
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/my-task/")
     public ResponseEntity<APIResponse> findTaskByQuery(@ModelAttribute TaskQueryRequest taskQueryRequest) {
-        List<TaskResponse> list = taskService.queryByCondition(taskQueryRequest);
+        PagedModel<TaskResponse> list = taskService.getAllMyTasks(taskQueryRequest);
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())
                 .message(SuccessVariable.QUERY_SUCCESS)
@@ -65,18 +76,6 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @GetMapping(value = "/my-task/")
-    public ResponseEntity<APIResponse> getAllMyTasks(@RequestParam(required = false, defaultValue = "1") Integer page,
-                                                     @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
-        PagedModel<TaskResponse> taskResponses = taskService.getAllMyTasks(page, pageSize);
-        APIResponse response = APIResponse.builder()
-                .code(HttpStatus.OK.value())
-                .message(SuccessVariable.QUERY_SUCCESS)
-                .response(taskResponses)
-                .build();
-        return ResponseEntity.status(HttpStatus.OK).body(response);
-    }
-
     @DeleteMapping(value = "/my-tasks/{ids}")
     @PreAuthorize(value = "@securityUtils.checkTaskIdInUser(#ids)")
     public ResponseEntity<APIResponse> deleteTaskById(@PathVariable List<String> ids) {
@@ -89,8 +88,9 @@ public class TaskController {
     }
 
     @GetMapping(value = "/deleted/all")
-    public ResponseEntity<APIResponse> getTaskDeleted() {
-        List<TaskResponse> taskResponses = taskService.getAllTaskDelete();
+    public ResponseEntity<APIResponse> getTaskDeleted(@RequestParam(defaultValue = "1", required = false) Integer page,
+                                                      @RequestParam(defaultValue = "10", required = false) Integer size) {
+        PagedModel<TaskResponse> taskResponses = taskService.getAllTaskDelete(page, size);
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())
                 .message(SuccessVariable.QUERY_SUCCESS)
@@ -104,7 +104,17 @@ public class TaskController {
         taskService.restoreTask(ids);
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())
-                .message(SuccessVariable.QUERY_SUCCESS)
+                .message(SuccessVariable.UPDATE_SUCCESS)
+                .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping(value = "/deleted/completed/{ids}")
+    public ResponseEntity<APIResponse> deleteAllTasksCompleted(@PathVariable List<String> ids) {
+        taskService.deleteTaskByIdCompleted(ids);
+        APIResponse response = APIResponse.builder()
+                .code(HttpStatus.OK.value())
+                .message(SuccessVariable.DELETE_SUCCESS)
                 .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

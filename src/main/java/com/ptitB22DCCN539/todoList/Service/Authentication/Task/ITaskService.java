@@ -10,11 +10,11 @@ import java.util.List;
 
 public interface ITaskService {
     TaskResponse saveTask(TaskRequest taskRequest);
-    PagedModel<TaskResponse> getAllMyTasks(Integer page, Integer pageSize);
     void deleteTask(List<String> ids);
-    List<TaskResponse> queryByCondition(TaskQueryRequest taskQueryRequest);
+    PagedModel<TaskResponse> getAllMyTasks(TaskQueryRequest taskQueryRequest);
     TaskEntity getTaskById(String id);
     TaskResponse getTaskResponseById(String id);
-    List<TaskResponse> getAllTaskDelete();
+    PagedModel<TaskResponse> getAllTaskDelete(Integer page, Integer pageSize);
     void restoreTask(List<String> ids);
+    void deleteTaskByIdCompleted(List<String> ids);
 }

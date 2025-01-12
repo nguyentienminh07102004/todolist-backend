@@ -53,4 +53,7 @@ public class UserEntity extends BaseEntity {
     @Cascade(value = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE})
     @JsonManagedReference
     private List<JwtTokenEntity> jwtTokens;
+
+    @OneToMany(mappedBy = "user")
+    private List<CategoryEntity> categories;
 }

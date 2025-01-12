@@ -63,12 +63,16 @@ public class WebSecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/%s/users/login/google".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.PUT, "/%s/users/forgot-password/{email}".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.PUT, "/%s/users/verify-code-set-password".formatted(apiPrefix)).permitAll()
+                .requestMatchers("/%s/auth/users/**".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 .requestMatchers(HttpMethod.POST, "/upload/").permitAll()
                 .requestMatchers(HttpMethod.POST, "/%s/users/logout".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
 
                 // tasks
                 .requestMatchers(HttpMethod.POST, "/%s/auth/tasks/".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+                .requestMatchers(HttpMethod.PUT, "/%s/auth/tasks/".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 .requestMatchers(HttpMethod.POST, "/%s/auth/email/send-mail".formatted(apiPrefix)).permitAll()
                 .requestMatchers(HttpMethod.GET, "/%s/auth/tasks/".formatted(apiPrefix))
@@ -81,11 +85,13 @@ public class WebSecurityConfig {
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 .requestMatchers(HttpMethod.PUT, "/%s/auth/tasks/restore/{ids}".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
+                .requestMatchers(HttpMethod.DELETE, "/%s/auth/tasks/deleted/completed/{ids}".formatted(apiPrefix))
+                    .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
                 //fakes
                 .requestMatchers(HttpMethod.POST, "/fakes/**").permitAll()
 
                 // category
-                .requestMatchers("/%s/auth/categories/**")
+                .requestMatchers("/%s/auth/categories/**".formatted(apiPrefix))
                     .access(new WebExpressionAuthorizationManager("not isAnonymous()"))
         );
         http.cors(cors -> corsFilter());
@@ -143,6 +149,7 @@ public class WebSecurityConfig {
         corsConfiguration.addAllowedMethod("*");
         corsConfiguration.addAllowedHeader("*");
         corsConfiguration.addAllowedOrigin(urlFrontEndOrigin);
+        corsConfiguration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();
         urlBasedCorsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
         return new CorsFilter(urlBasedCorsConfigurationSource);

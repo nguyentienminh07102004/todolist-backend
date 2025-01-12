@@ -50,7 +50,7 @@ public class UserController {
                 .response(token)
                 .build();
         return ResponseEntity.status(HttpStatus.OK)
-                .header(HttpHeaders.SET_COOKIE, String.valueOf(cookie))
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(response);
     }
 
@@ -96,12 +96,19 @@ public class UserController {
     @PutMapping(value = "/verify-code-set-password")
     public ResponseEntity<APIResponse> verifyCode(@Valid @RequestBody UserForgotPasswordRequest userForgotPasswordRequest) {
         UserResponse userResponse = userService.verifyCodeAndSetPassword(userForgotPasswordRequest);
+        ResponseCookie cookie = ResponseCookie.from(ContantVariable.TOKEN_NAME, "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(Duration.ZERO)
+                .build();
         APIResponse response = APIResponse.builder()
                 .code(HttpStatus.OK.value())
                 .message(SuccessVariable.CHANGE_PASSWORD_SUCCESS)
                 .response(userResponse)
                 .build();
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, String.valueOf(cookie))
+                .body(response);
     }
 
     @PostMapping(value = "/logout")

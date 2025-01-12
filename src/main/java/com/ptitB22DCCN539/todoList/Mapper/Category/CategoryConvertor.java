@@ -9,13 +9,16 @@ import org.springframework.stereotype.Component;
 @Component
 public class CategoryConvertor {
     private final CategoryMapper categoryMapper;
+
     @Autowired
     public CategoryConvertor(CategoryMapper categoryMapper) {
         this.categoryMapper = categoryMapper;
     }
+
     public CategoryEntity RequestToEntity(CategoryRequest categoryRequest) {
         return categoryMapper.RequestToEntity(categoryRequest);
     }
+
     public CategoryResponse EntityToResponse(CategoryEntity categoryEntity) {
         return categoryMapper.EntityToResponse(categoryEntity);
     }

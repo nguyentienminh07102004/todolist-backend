@@ -18,8 +18,8 @@ public class CodeVerifyService extends BaseRedisServiceImpl<String, String, Obje
     @Transactional
     public CodeVerifyRedis save(CodeVerifyRedis codeVerifyRedis) {
         this.hashSet(String.format("codeVerify:%s", codeVerifyRedis.getCode()), "code", codeVerifyRedis.getCode());
-        this.hashSet(String.format("codeVerify:%s", codeVerifyRedis.getCode()), "email", codeVerifyRedis.getCode());
-        this.setTimeToLive(codeVerifyRedis.getCode(), codeVerifyRedis.getTimeToLive());
+        this.hashSet(String.format("codeVerify:%s", codeVerifyRedis.getCode()), "email", codeVerifyRedis.getEmail());
+        this.setTimeToLive(String.format("codeVerify:%s", codeVerifyRedis.getCode()), codeVerifyRedis.getTimeToLive());
         return codeVerifyRedis;
     }
 

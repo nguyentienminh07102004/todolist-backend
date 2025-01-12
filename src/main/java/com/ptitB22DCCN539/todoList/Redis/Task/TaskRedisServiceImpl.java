@@ -70,4 +70,9 @@ public class TaskRedisServiceImpl extends BaseRedisServiceImpl<String, String, T
     public void deleteTask(List<String> ids) {
         this.deleteAll(ids.stream().map(this::getTaskRedisId).toList());
     }
+
+    @Override
+    public Long getTimeToLiveById(String id) {
+        return this.getTimeToLive(this.getTaskRedisId(id));
+    }
 }

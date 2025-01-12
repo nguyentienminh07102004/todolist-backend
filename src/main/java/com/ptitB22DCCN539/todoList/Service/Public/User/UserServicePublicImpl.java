@@ -31,7 +31,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
@@ -45,7 +44,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
+import java.util.Random;
 
 @Service
 @Slf4j
@@ -164,7 +163,7 @@ public class UserServicePublicImpl implements IUserServicePublic {
         try {
             UserEntity user = userRepository.findById(email)
                     .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND));
-            String code = UUID.randomUUID().toString();
+            String code = "%06d".formatted(new Random().nextInt(1000000) + 1);
             Map<String, Object> properties = new HashMap<>();
             properties.put(ContantVariable.CODE_VERIFIED, code);
             CodeVerifyRedis codeVerifyRedis = CodeVerifyRedis.builder()
@@ -183,14 +182,9 @@ public class UserServicePublicImpl implements IUserServicePublic {
     @Override
     @Transactional
     public UserResponse verifyCodeAndSetPassword(UserForgotPasswordRequest userForgotPasswordRequest) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         CodeVerifyRedis codeVerifyRedis = codeVerifyService.findByCode(userForgotPasswordRequest.getCode())
                 .orElseThrow(() -> new DataInvalidException(ExceptionVariable.CODE_INVALID));
-        // Đảm bảo email trùng với email của code verify lưu ở redis
-        if (!codeVerifyRedis.getEmail().equals(email)) {
-            throw new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND);
-        }
-        UserEntity user = userRepository.findById(email)
+        UserEntity user = userRepository.findById(codeVerifyRedis.getEmail())
                 .orElseThrow(() -> new DataInvalidException(ExceptionVariable.EMAIL_NOT_FOUND));
         if (!userForgotPasswordRequest.getPassword().equals(userForgotPasswordRequest.getRePassword())) {
             throw new DataInvalidException(ExceptionVariable.PASSWORD_AND_REPEAT_PASSWORD_NOT_MATCH);

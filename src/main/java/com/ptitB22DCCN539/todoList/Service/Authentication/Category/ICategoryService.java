@@ -11,7 +11,7 @@ public interface ICategoryService {
     CategoryResponse save(CategoryRequest category);
     CategoryResponse getCategoryById(String id);
     CategoryEntity getCategoryEntityById(String id);
-    PagedModel<CategoryResponse> getCategoryByName(String name, Integer page, Integer pageSize);
+    List<CategoryResponse> getCategoryByName(String name);
     List<CategoryResponse> getAllCategories();
     PagedModel<CategoryResponse> getAllCategories(Integer page, Integer pageSize);
     void deleteCategoryByIds(List<String> ids);

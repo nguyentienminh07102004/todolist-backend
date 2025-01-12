@@ -11,4 +11,5 @@ public interface ITaskRedisService {
     void saveTask(List<TaskEntity> tasks, Long expire);
     List<TaskEntity> getAllDeleteTasks();
     void deleteTask(List<String> ids);
+    Long getTimeToLiveById(String id);
 }

@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class BaseRedisServiceImpl<K, F, V> implements BaseRedisService<K, F, V> {
@@ -82,5 +83,10 @@ public class BaseRedisServiceImpl<K, F, V> implements BaseRedisService<K, F, V> 
     @Override
     public Set<K> getKeysByPrefix(K fieldPrefix) {
         return redisTemplate.keys(fieldPrefix);
+    }
+
+    @Override
+    public Long getTimeToLive(K key) {
+        return redisTemplate.getExpire(key, TimeUnit.SECONDS);
     }
 }

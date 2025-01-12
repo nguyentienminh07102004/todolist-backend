@@ -26,6 +26,7 @@ public class TaskResponse implements Serializable {
     private LocalDateTime dueDate;
     private String notes;
     private UserResponse user;
+    private Long timeToLive;
     private CategoryResponse category;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
